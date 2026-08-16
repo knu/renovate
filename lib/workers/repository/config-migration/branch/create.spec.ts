@@ -4,6 +4,7 @@ import { Fixtures } from '~test/fixtures.ts';
 import type { RenovateConfig } from '~test/util.ts';
 import { fs, partial, scm } from '~test/util.ts';
 import { getConfig } from '../../../../config/defaults.ts';
+import { EMPTY_COMMIT } from '../../../../util/git/types.ts';
 import { createConfigMigrationBranch } from './create.ts';
 import type { MigratedData } from './migrated-data.ts';
 import { MigratedDataFactory } from './migrated-data.ts';
@@ -33,6 +34,14 @@ describe('workers/repository/config-migration/branch/create', () => {
   });
 
   describe('createConfigMigrationBranch', () => {
+    it('normalizes an empty commit result', async () => {
+      scm.commitAndPush.mockResolvedValueOnce(EMPTY_COMMIT);
+
+      await expect(
+        createConfigMigrationBranch(config, migratedConfigData),
+      ).resolves.toBeNull();
+    });
+
     it('applies the default commit message', async () => {
       await createConfigMigrationBranch(config, migratedConfigData);
       expect(scm.checkoutBranch).toHaveBeenCalledExactlyOnceWith(

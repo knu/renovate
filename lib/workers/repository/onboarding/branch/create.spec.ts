@@ -2,6 +2,7 @@ import type { RenovateConfig } from '~test/util.ts';
 import { scm } from '~test/util.ts';
 import { getConfig } from '../../../../config/defaults.ts';
 import { GlobalConfig } from '../../../../config/global.ts';
+import { EMPTY_COMMIT } from '../../../../util/git/types.ts';
 import { createOnboardingBranch } from './create.ts';
 
 vi.mock('./config.ts', () => ({
@@ -24,6 +25,12 @@ describe('workers/repository/onboarding/branch/create', () => {
   });
 
   describe('createOnboardingBranch', () => {
+    it('normalizes an empty commit result', async () => {
+      scm.commitAndPush.mockResolvedValueOnce(EMPTY_COMMIT);
+
+      await expect(createOnboardingBranch(config)).resolves.toBeNull();
+    });
+
     it('applies the default commit message', async () => {
       await createOnboardingBranch(config);
       expect(scm.commitAndPush).toHaveBeenCalledExactlyOnceWith({

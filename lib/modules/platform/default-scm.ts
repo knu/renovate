@@ -1,6 +1,9 @@
 import type { DateTime } from 'luxon';
 import * as git from '../../util/git/index.ts';
-import type { CommitFilesConfig } from '../../util/git/types.ts';
+import type {
+  CommitFilesConfig,
+  CommitFilesResult,
+} from '../../util/git/types.ts';
 import type { LongCommitSha } from '../../util/schema-utils/git.ts';
 import type { PlatformScm } from './types.ts';
 
@@ -9,9 +12,7 @@ export class DefaultGitScm implements PlatformScm {
     return Promise.resolve(git.branchExists(branchName));
   }
 
-  commitAndPush(
-    commitConfig: CommitFilesConfig,
-  ): Promise<LongCommitSha | null> {
+  commitAndPush(commitConfig: CommitFilesConfig): Promise<CommitFilesResult> {
     return git.commitFiles(commitConfig);
   }
 

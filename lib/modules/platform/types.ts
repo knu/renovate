@@ -1,7 +1,10 @@
 import type { DateTime } from 'luxon';
 import type { MergeStrategy } from '../../config/types.ts';
 import type { BranchStatus, HostRule } from '../../types/index.ts';
-import type { CommitFilesConfig } from '../../util/git/types.ts';
+import type {
+  CommitFilesConfig,
+  CommitFilesResult,
+} from '../../util/git/types.ts';
 import type { LongCommitSha } from '../../util/schema-utils/git.ts';
 import type { GithubVulnerabilityAlert } from './github/schema.ts';
 export type VulnerabilityAlert = GithubVulnerabilityAlert;
@@ -315,7 +318,7 @@ export interface Platform {
   tryReuseAutoclosedPr?(pr: Pr, newTitle: string): Promise<Pr | null>;
   initPlatform(config: PlatformParams): Promise<PlatformResult>;
   filterUnavailableUsers?(users: string[]): Promise<string[]>;
-  commitFiles?(config: CommitFilesConfig): Promise<LongCommitSha | null>;
+  commitFiles?(config: CommitFilesConfig): Promise<CommitFilesResult>;
   expandGroupMembers?(reviewersOrAssignees: string[]): Promise<string[]>;
   extractRulesFromCodeOwnersLines?(cleanedLines: string[]): FileOwnerRule[];
 
@@ -332,7 +335,7 @@ export interface PlatformScm {
   getBranchUpdateDate(branchName: string): Promise<DateTime | null>;
   getAllBranchUpdateDates(): Promise<Record<string, DateTime>>;
   deleteBranch(branchName: string): Promise<void>;
-  commitAndPush(commitConfig: CommitFilesConfig): Promise<LongCommitSha | null>;
+  commitAndPush(commitConfig: CommitFilesConfig): Promise<CommitFilesResult>;
   getFileList(): Promise<string[]>;
   checkoutBranch(branchName: string): Promise<LongCommitSha | null>;
   mergeToLocal(branchName: string): Promise<void>;

@@ -1,4 +1,4 @@
-import { isTruthy } from '@sindresorhus/is';
+import { isString, isTruthy } from '@sindresorhus/is';
 import { codeBlock } from 'common-tags';
 import fs from 'fs-extra';
 import { DateTime } from 'luxon';
@@ -26,6 +26,7 @@ import * as git from './index.ts';
 import { setNoVerify } from './index.ts';
 import * as _modifiedCache from './modified-cache.ts';
 import type { FileChange } from './types.ts';
+import { EMPTY_COMMIT } from './types.ts';
 import * as _updateDateCache from './update-date-cache.ts';
 
 vi.mock('./conflicts-cache.ts');
@@ -813,7 +814,10 @@ describe('util/git/index', { timeout: 30000 }, () => {
         ],
         message: 'Create something',
       });
-      const branchFiles = await git.getBranchFilesFromCommit(sha!);
+      if (!sha || sha === EMPTY_COMMIT) {
+        throw new Error('Expected commit SHA');
+      }
+      const branchFiles = await git.getBranchFilesFromCommit(sha);
       expect(branchFiles).toEqual(['some-new-file']);
     });
   });
@@ -856,10 +860,13 @@ describe('util/git/index', { timeout: 30000 }, () => {
           { type: 'addition', path: 'local_only_file', contents: 'local' },
         ],
       });
+      if (!commit || commit === EMPTY_COMMIT) {
+        throw new Error('Expected prepared commit');
+      }
       await git.setVirtualBranch(
         'renovate/local_only_branch',
         'refs/changes/99/99999/1',
-        commit!.commitSha,
+        commit.commitSha,
       );
       // Reset working tree back to default branch so the file is not present yet
       const local = simpleGit(tmpDir.path);
@@ -1034,8 +1041,11 @@ describe('util/git/index', { timeout: 30000 }, () => {
         message: 'Create a link',
       });
       expect(commit).toBeString();
+      if (!isString(commit)) {
+        return;
+      }
       const tmpGit = simpleGit(tmpDir.path);
-      const lsTree = await tmpGit.raw(['ls-tree', commit!]);
+      const lsTree = await tmpGit.raw(['ls-tree', commit]);
       const files = lsTree
         .trim()
         .split(newlineRegex)
@@ -1063,13 +1073,16 @@ describe('util/git/index', { timeout: 30000 }, () => {
         ],
       });
 
-      expect(commit).not.toBeNull();
+      expect(commit).toBeString();
+      if (!isString(commit)) {
+        return;
+      }
       const tmpGit = simpleGit(tmpDir.path);
       const parsedTrailers = await tmpGit.raw([
         'log',
         '-1',
         '--format=%(trailers:only)',
-        commit!,
+        commit,
       ]);
       expect(parsedTrailers.trim()).toBe(codeBlock`
         Signed-off-by: Renovate Bot <bot@renovateapp.com>
@@ -1092,13 +1105,16 @@ describe('util/git/index', { timeout: 30000 }, () => {
         trailers: ['Signed-off-by: Renovate Bot <bot@renovateapp.com>'],
       });
 
-      expect(commit).not.toBeNull();
+      expect(commit).toBeString();
+      if (!isString(commit)) {
+        return;
+      }
       const tmpGit = simpleGit(tmpDir.path);
       const parsedTrailers = await tmpGit.raw([
         'log',
         '-1',
         '--format=%(trailers:only)',
-        commit!,
+        commit,
       ]);
       expect(parsedTrailers.trim()).toBe(
         'Signed-off-by: Renovate Bot <bot@renovateapp.com>',
@@ -1176,7 +1192,7 @@ describe('util/git/index', { timeout: 30000 }, () => {
         files,
         message: 'Update something',
       });
-      expect(commit).toBeNull();
+      expect(commit).toBe(EMPTY_COMMIT);
     });
 
     it('does not push when no diff', async () => {

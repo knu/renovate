@@ -37,8 +37,10 @@ import {
 } from '../../../util/git/index.ts';
 import type {
   CommitFilesConfig,
+  CommitFilesResult,
   CommitResult,
 } from '../../../util/git/types.ts';
+import { EMPTY_COMMIT } from '../../../util/git/types.ts';
 import * as hostRules from '../../../util/host-rules.ts';
 import { memCacheProvider } from '../../../util/http/cache/memory-http-cache-provider.ts';
 import { repoCacheProvider } from '../../../util/http/cache/repository-http-cache-provider.ts';
@@ -2403,9 +2405,12 @@ async function pushFiles(
 
 export async function commitFiles(
   config: CommitFilesConfig,
-): Promise<LongCommitSha | null> {
+): Promise<CommitFilesResult> {
   const commitResult = await git.prepareCommit(config); // Commit locally and don't push
   const { branchName, files } = config;
+  if (commitResult === EMPTY_COMMIT) {
+    return EMPTY_COMMIT;
+  }
   if (!commitResult) {
     logger.debug(
       { branchName, files: files.map(({ path }) => path) },

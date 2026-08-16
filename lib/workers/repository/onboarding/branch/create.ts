@@ -5,6 +5,7 @@ import { scm } from '../../../../modules/platform/scm.ts';
 import { coerceArray } from '../../../../util/array.ts';
 import { getInheritedOrGlobal } from '../../../../util/common.ts';
 import { filterValidCommitTrailers } from '../../../../util/git/commit-trailers.ts';
+import { EMPTY_COMMIT } from '../../../../util/git/types.ts';
 import { compile } from '../../../../util/template/index.ts';
 import {
   getDefaultConfigFileName,
@@ -55,7 +56,7 @@ export async function createOnboardingBranch(
       ? getSemanticCommitPrTitle(config)
       : getInheritedOrGlobal('onboardingPrTitle')!;
 
-  return scm.commitAndPush({
+  const commitResult = await scm.commitAndPush({
     baseBranch: config.baseBranch,
     branchName: getInheritedOrGlobal('onboardingBranch')!,
     files: [
@@ -73,4 +74,5 @@ export async function createOnboardingBranch(
     // Only needed by Gerrit platform
     prTitle,
   });
+  return commitResult === EMPTY_COMMIT ? null : commitResult;
 }

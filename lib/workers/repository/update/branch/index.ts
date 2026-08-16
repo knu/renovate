@@ -33,6 +33,7 @@ import { ExternalHostError } from '../../../../types/errors/external-host-error.
 import { getElapsedMs } from '../../../../util/date.ts';
 import { emojify } from '../../../../util/emoji.ts';
 import { filterValidCommitTrailers } from '../../../../util/git/commit-trailers.ts';
+import { EMPTY_COMMIT } from '../../../../util/git/types.ts';
 import {
   getMergeConfidenceLevel,
   isActiveConfidenceLevel,
@@ -137,6 +138,7 @@ export async function processBranch(
   forceRebase = false,
 ): Promise<ProcessBranchResult> {
   let commitSha: string | null = null;
+  let emptyCommit = false;
   let config: BranchConfig = { ...branchConfig };
   logger.trace({ config }, 'processBranch()');
   let branchExists = await scm.branchExists(config.branchName);
@@ -764,7 +766,12 @@ export async function processBranch(
         );
       }
 
-      commitSha = await commitFilesToBranch(config);
+      const commitResult = await commitFilesToBranch(config);
+      if (commitResult === EMPTY_COMMIT) {
+        emptyCommit = true;
+      } else {
+        commitSha = commitResult;
+      }
       // Checkout to base branch to ensure that the next branch processing always starts with git being on the baseBranch
       // baseBranch is not checked out at the start of processBranch() due to pull/16246
       await scm.checkoutBranch(config.baseBranch);
@@ -775,6 +782,32 @@ export async function processBranch(
       if (commitSha) {
         await setArtifactErrorStatus(config);
       }
+    }
+
+    if (
+      emptyCommit &&
+      branchExists &&
+      config.pruneStaleBranches &&
+      !config.artifactErrors?.length &&
+      !GlobalConfig.get('dryRun')
+    ) {
+      logger.info(
+        { branchName: config.branchName, prNo: branchPr?.number },
+        'Autoclosing branch after empty rebase',
+      );
+      if (branchPr) {
+        await platform.updatePr({
+          number: branchPr.number,
+          prTitle: `${branchPr.title} - autoclosed`,
+          state: 'closed',
+        });
+      }
+      await scm.deleteBranch(config.branchName);
+      return {
+        branchExists: false,
+        prNo: branchPr?.number,
+        result: 'no-work',
+      };
     }
 
     if (branchPr) {

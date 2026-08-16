@@ -3,6 +3,7 @@ import type { RenovateConfig } from '../../../../config/types.ts';
 import { logger } from '../../../../logger/index.ts';
 import { scm } from '../../../../modules/platform/scm.ts';
 import { getInheritedOrGlobal } from '../../../../util/common.ts';
+import { EMPTY_COMMIT } from '../../../../util/git/types.ts';
 import { toSha256 } from '../../../../util/hash.ts';
 import {
   getDefaultConfigFileName,
@@ -56,7 +57,7 @@ export async function rebaseOnboardingBranch(
       : getInheritedOrGlobal('onboardingPrTitle')!;
 
   // TODO #22198
-  return scm.commitAndPush({
+  const commitResult = await scm.commitAndPush({
     baseBranch: config.baseBranch,
     branchName: getInheritedOrGlobal('onboardingBranch')!,
     files: [
@@ -71,4 +72,5 @@ export async function rebaseOnboardingBranch(
     // Only needed by Gerrit platform
     prTitle,
   });
+  return commitResult === EMPTY_COMMIT ? null : commitResult;
 }

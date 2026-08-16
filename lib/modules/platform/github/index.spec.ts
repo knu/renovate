@@ -19,6 +19,7 @@ import {
 import { ExternalHostError } from '../../../types/errors/external-host-error.ts';
 import * as repository from '../../../util/cache/repository/index.ts';
 import * as _git from '../../../util/git/index.ts';
+import { EMPTY_COMMIT } from '../../../util/git/types.ts';
 import { setBaseUrl } from '../../../util/http/github.ts';
 import { toBase64 } from '../../../util/string.ts';
 import { hashBody } from '../pr-body.ts';
@@ -5780,6 +5781,22 @@ describe('modules/platform/github/index', () => {
       });
 
       expect(res).toBeNull();
+    });
+
+    it('returns an empty commit result', async () => {
+      const scope = httpMock.scope(githubApiHost);
+      initRepoMock(scope, 'some/repo');
+      git.prepareCommit.mockResolvedValueOnce(EMPTY_COMMIT);
+
+      await github.initRepo({ repository: 'some/repo' });
+
+      const res = await github.commitFiles({
+        branchName: 'foo/bar',
+        files: [],
+        message: 'Foobar',
+      });
+
+      expect(res).toBe(EMPTY_COMMIT);
     });
 
     it('returns null on REST error', async () => {

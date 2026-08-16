@@ -2,9 +2,13 @@ import { randomUUID } from 'node:crypto';
 import { isNonEmptyArray, isString } from '@sindresorhus/is';
 import { logger } from '../../../logger/index.ts';
 import * as git from '../../../util/git/index.ts';
-import type { CommitFilesConfig, FileChange } from '../../../util/git/types.ts';
+import type {
+  CommitFilesConfig,
+  CommitFilesResult,
+  FileChange,
+} from '../../../util/git/types.ts';
+import { EMPTY_COMMIT } from '../../../util/git/types.ts';
 import { hash } from '../../../util/hash.ts';
-import type { LongCommitSha } from '../../../util/schema-utils/git.ts';
 import { DefaultGitScm } from '../default-scm.ts';
 import { client } from './client.ts';
 import type { GerritLabels } from './schema.ts';
@@ -75,7 +79,7 @@ export async function pushForReview(options: {
 export class GerritScm extends DefaultGitScm {
   override async commitAndPush(
     commit: CommitFilesConfig,
-  ): Promise<LongCommitSha | null> {
+  ): Promise<CommitFilesResult> {
     logger.debug(`commitAndPush(${commit.branchName})`);
 
     const existingChange = await client.getBranchChange(repository, {
@@ -113,6 +117,9 @@ export class GerritScm extends DefaultGitScm {
     // refs/remotes/origin/<branchName> during init.  This avoids pushing empty
     // patch sets without a separate diff check.
     const commitResult = await git.prepareCommit(commit);
+    if (commitResult === EMPTY_COMMIT) {
+      return EMPTY_COMMIT;
+    }
     if (commitResult) {
       const { commitSha } = commitResult;
       if (existingChange) {

@@ -1,4 +1,5 @@
 import { fakeSha, git, logger, partial } from '~test/util.ts';
+import { EMPTY_COMMIT } from '../../../util/git/types.ts';
 import { client as _client } from './client.ts';
 import type {
   GerritChange,
@@ -148,6 +149,21 @@ describe('modules/platform/gerrit/scm', () => {
           requestDetails: ['CURRENT_REVISION'],
         },
       );
+    });
+
+    it('commitAndPush() - propagates an empty commit result', async () => {
+      clientMock.getBranchChange.mockResolvedValueOnce(null);
+      git.prepareCommit.mockResolvedValueOnce(EMPTY_COMMIT);
+
+      await expect(
+        gerritScm.commitAndPush({
+          branchName: 'renovate/dependency-1.x',
+          baseBranch: 'main',
+          message: 'commit msg',
+          files: [],
+          prTitle: 'pr title',
+        }),
+      ).resolves.toBe(EMPTY_COMMIT);
     });
 
     it('commitAndPush() - create first commit but does not push', async () => {

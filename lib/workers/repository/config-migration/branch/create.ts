@@ -5,6 +5,7 @@ import { scm } from '../../../../modules/platform/scm.ts';
 import { parseJson } from '../../../../util/common.ts';
 import { readLocalFile } from '../../../../util/fs/index.ts';
 import type { FileChange } from '../../../../util/git/types.ts';
+import { EMPTY_COMMIT } from '../../../../util/git/types.ts';
 import { getMigrationBranchName } from '../common.ts';
 import { ConfigMigrationCommitMessageFactory } from './commit-message.ts';
 import type { MigratedData } from './migrated-data.ts';
@@ -70,7 +71,7 @@ export async function createConfigMigrationBranch(
     });
   }
 
-  return scm.commitAndPush({
+  const commitResult = await scm.commitAndPush({
     baseBranch: config.baseBranch,
     branchName: getMigrationBranchName(config),
     files,
@@ -80,4 +81,5 @@ export async function createConfigMigrationBranch(
     // Only needed by Gerrit platform
     prTitle: commitMessageFactory.getPrTitle(),
   });
+  return commitResult === EMPTY_COMMIT ? null : commitResult;
 }

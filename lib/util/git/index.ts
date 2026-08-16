@@ -72,15 +72,17 @@ import {
 import { configSigningKey, writePrivateKey } from './private-key.ts';
 import type {
   CommitFilesConfig,
+  CommitFilesResult,
   CommitResult,
   DiffTreeItem,
   GitObjectType,
   LocalConfig,
+  PrepareCommitResult,
   PushFilesConfig,
   StatusResult,
   StorageConfig,
 } from './types.ts';
-import { GitTreeMode } from './types.ts';
+import { EMPTY_COMMIT, GitTreeMode } from './types.ts';
 import {
   getCachedUpdateDateResult,
   setCachedUpdateDateResult,
@@ -1382,7 +1384,7 @@ export async function prepareCommit({
   message,
   trailers,
   force = false,
-}: CommitFilesConfig): Promise<CommitResult | null> {
+}: CommitFilesConfig): Promise<PrepareCommitResult> {
   const localDir = GlobalConfig.get('localDir');
   await syncGit();
   logger.debug(`Preparing files for committing to branch ${branchName}`);
@@ -1473,7 +1475,7 @@ export async function prepareCommit({
       commitRes.summary.deletions === 0
     ) {
       logger.warn({ commitRes }, 'Detected empty commit - aborting git push');
-      return null;
+      return EMPTY_COMMIT;
     }
     logger.debug(
       { deletedFiles, ignoredFiles, result: commitRes },
@@ -1561,9 +1563,12 @@ export async function fetchBranch(
 
 export async function commitFiles(
   commitConfig: CommitFilesConfig,
-): Promise<LongCommitSha | null> {
+): Promise<CommitFilesResult> {
   try {
     const commitResult = await prepareCommit(commitConfig);
+    if (commitResult === EMPTY_COMMIT) {
+      return EMPTY_COMMIT;
+    }
     if (commitResult) {
       const pushResult = await pushCommit({
         sourceRef: commitConfig.branchName,

@@ -3,6 +3,7 @@ import { scm } from '~test/util.ts';
 import { GlobalConfig } from '../../../../config/global.ts';
 import { logger } from '../../../../logger/index.ts';
 import * as memCache from '../../../../util/cache/memory/index.ts';
+import { EMPTY_COMMIT } from '../../../../util/git/types.ts';
 import { toSha256 } from '../../../../util/hash.ts';
 import * as _config from './config.ts';
 import { rebaseOnboardingBranch } from './rebase.ts';
@@ -51,6 +52,12 @@ describe('workers/repository/onboarding/branch/rebase', () => {
       expect(scm.commitAndPush.mock.calls[0][0].prTitle).toBe(
         'Configure Renovate',
       );
+    });
+
+    it('normalizes an empty commit result', async () => {
+      scm.commitAndPush.mockResolvedValueOnce(EMPTY_COMMIT);
+
+      await expect(rebaseOnboardingBranch(config, hash)).resolves.toBeNull();
     });
 
     it('uses the onboardingConfigFileName if set', async () => {

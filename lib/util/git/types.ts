@@ -126,6 +126,13 @@ export interface CommitResult {
   files: FileChange[];
 }
 
+export const EMPTY_COMMIT = Symbol('empty-commit');
+export type EmptyCommit = typeof EMPTY_COMMIT;
+
+export type CommitFilesResult = LongCommitSha | EmptyCommit | null;
+
+export type PrepareCommitResult = CommitResult | EmptyCommit | null;
+
 export type GitObjectType = 'blob' | 'tree' | 'commit';
 
 /**

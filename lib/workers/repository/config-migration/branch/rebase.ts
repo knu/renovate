@@ -4,6 +4,7 @@ import type { RenovateConfig } from '../../../../config/types.ts';
 import { logger } from '../../../../logger/index.ts';
 import { scm } from '../../../../modules/platform/scm.ts';
 import { getFile } from '../../../../util/git/index.ts';
+import { EMPTY_COMMIT } from '../../../../util/git/types.ts';
 import { quickStringify } from '../../../../util/stringify.ts';
 import { getMigrationBranchName } from '../common.ts';
 import { ConfigMigrationCommitMessageFactory } from './commit-message.ts';
@@ -42,7 +43,7 @@ export async function rebaseMigrationBranch(
   await scm.checkoutBranch(baseBranch);
   contents =
     await MigratedDataFactory.applyPrettierFormatting(migratedConfigData);
-  return scm.commitAndPush({
+  const commitResult = await scm.commitAndPush({
     baseBranch: config.baseBranch,
     branchName,
     files: [
@@ -57,6 +58,7 @@ export async function rebaseMigrationBranch(
     // Only needed by Gerrit platform
     prTitle: commitMessageFactory.getPrTitle(),
   });
+  return commitResult === EMPTY_COMMIT ? null : commitResult;
 }
 
 /**

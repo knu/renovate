@@ -28,6 +28,7 @@ import { hashBody } from '../../../../modules/platform/pr-body.ts';
 import * as _repoCache from '../../../../util/cache/repository/index.ts';
 import * as _exec from '../../../../util/exec/index.ts';
 import type { FileChange, StatusResult } from '../../../../util/git/types.ts';
+import { EMPTY_COMMIT } from '../../../../util/git/types.ts';
 import * as _mergeConfidence from '../../../../util/merge-confidence/index.ts';
 import * as _sanitize from '../../../../util/sanitize.ts';
 import type { Timestamp } from '../../../../util/timestamp.ts';
@@ -845,12 +846,48 @@ describe('workers/repository/update/branch/index', () => {
         updatedArtifacts: [],
       });
       scm.branchExists.mockResolvedValue(false);
-      commit.commitFilesToBranch.mockResolvedValueOnce(null);
+      commit.commitFilesToBranch.mockResolvedValueOnce(EMPTY_COMMIT);
       expect(await branchWorker.processBranch(config)).toEqual({
         branchExists: false,
         prNo: undefined,
         result: 'no-work',
       });
+    });
+
+    it('autocloses an existing PR when a requested rebase has no changes', async () => {
+      getUpdated.getUpdatedPackageFiles.mockResolvedValueOnce({
+        ...updatedPackageFiles,
+      });
+      npmPostExtract.getAdditionalFiles.mockResolvedValueOnce({
+        artifactErrors: [],
+        updatedArtifacts: [],
+      });
+      scm.branchExists.mockResolvedValue(true);
+      platform.getBranchPr.mockResolvedValueOnce(
+        partial<Pr>({
+          bodyStruct: partial<PrBodyStruct>({ rebaseRequested: true }),
+          number: 5,
+          state: 'open',
+          title: 'Lock file maintenance',
+        }),
+      );
+      scm.isBranchModified.mockResolvedValueOnce(false);
+      commit.commitFilesToBranch.mockResolvedValueOnce(EMPTY_COMMIT);
+
+      expect(await branchWorker.processBranch(config)).toEqual({
+        branchExists: false,
+        prNo: 5,
+        result: 'no-work',
+      });
+      expect(platform.updatePr).toHaveBeenCalledExactlyOnceWith({
+        number: 5,
+        prTitle: 'Lock file maintenance - autoclosed',
+        state: 'closed',
+      });
+      expect(scm.deleteBranch).toHaveBeenCalledExactlyOnceWith(
+        'renovate/some-branch',
+      );
+      expect(prWorker.ensurePr).not.toHaveBeenCalled();
     });
 
     it('returns if pending checks', async () => {

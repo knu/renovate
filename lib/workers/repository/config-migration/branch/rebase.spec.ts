@@ -5,6 +5,7 @@ import type { RenovateConfig } from '~test/util.ts';
 import { git, partial, scm } from '~test/util.ts';
 import { getConfig } from '../../../../config/defaults.ts';
 import { GlobalConfig } from '../../../../config/global.ts';
+import { EMPTY_COMMIT } from '../../../../util/git/types.ts';
 import type { MigratedData } from './migrated-data.ts';
 import { MigratedDataFactory } from './migrated-data.ts';
 import { jsonStripWhitespaces, rebaseMigrationBranch } from './rebase.ts';
@@ -76,6 +77,17 @@ describe('workers/repository/config-migration/branch/rebase', () => {
         config.defaultBranch,
       );
       expect(scm.commitAndPush).toHaveBeenCalledTimes(1);
+    });
+
+    it('normalizes an empty commit result', async () => {
+      prettierSpy.mockResolvedValueOnce('');
+      migratedConfigData.filename = 'renovate.json';
+      migratedConfigData.content = renovateConfigJson;
+      scm.commitAndPush.mockResolvedValueOnce(EMPTY_COMMIT);
+
+      await expect(
+        rebaseMigrationBranch(config, migratedConfigData),
+      ).resolves.toBeNull();
     });
 
     it.each([
